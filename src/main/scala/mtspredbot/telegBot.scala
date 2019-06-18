@@ -47,7 +47,7 @@ class telegBot(log :org.slf4j.Logger) extends TelegramBot
   LoggerConfig.factory = PrintLoggerFactory()
   LoggerConfig.level = LogLevel.TRACE
 
-  log.info("Begin bot inside telegBot")
+  log.info("Begin BOT inside telegBot")
 
   val config :Config = try {
     ConfigFactory.load()
