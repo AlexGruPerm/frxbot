@@ -17,7 +17,10 @@ object SttpBackends{
   val default = OkHttpFutureBackend()
 }
 
-class telegBot(log :org.slf4j.Logger, config :Config) extends TelegramBot
+class telegBot(log :org.slf4j.Logger,
+               config :Config,
+               sessSrc :CassSessionSrc,
+               sessDest :CassSessionDest) extends TelegramBot
   with Polling
   with Commands[Future] {
 
