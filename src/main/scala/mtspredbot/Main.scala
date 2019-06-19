@@ -30,9 +30,9 @@ object Main extends App {
       throw e
   }
 
-  val (sessDest :CassSessionDest,sessSrc :CassSessionSrc)  =
+  val (sessSrc :CassSessionSrc,sessDest :CassSessionDest)  =
     try {
-      (CassSessionDest.apply(config),CassSessionSrc.apply(config))
+      (CassSessionSrc.apply(config),CassSessionDest.apply(config))
     } catch {
       case s: com.datastax.oss.driver.api.core.servererrors.SyntaxError => {
         log.error("[0] ERROR when get CassSessionXXX SyntaxError - msg="+s.getMessage+" cause="+s.getCause)
@@ -55,22 +55,22 @@ object Main extends App {
   val bot = new telegBot(log, config, sessSrc, sessDest)
   val eol = bot.run
 
-
+  def SeesionConnectedCheck(isClosed :Boolean) :String =
+    !isClosed==true match {case true => "YES" case false => "NO"}
 
   bot.sendMessageTest(
     """
-       |Bot "mtsPredBot" started and ready to communicate.
-       |You can use command /help to see possible commands.
-       |sessSrc.isClosed=["""+sessSrc.sess.isClosed+"""] for ["""+sessSrc.getIpDc+"""]
-      ||sessDest.isClosed=["""+sessDest.sess.isClosed+"""] for ["""+sessDest.getIpDc+"""]
+       Bot "mtsPredBot" started and ready to communicate.
+       You can use command /help to see possible commands.
+       Source (SRC) OPEN = """ + SeesionConnectedCheck(sessSrc.sess.isClosed) + """ for """+sessSrc.getIpDc+"""
+       Destination (DEST) OPEN = """ + SeesionConnectedCheck(sessDest.sess.isClosed) + """ for """+sessDest.getIpDc+"""
     """.stripMargin)
-
-
-
 
   println("Press [ENTER] to shutdown the bot, it may take a few seconds...")
   scala.io.StdIn.readLine()
   log.info("~~~~~~~~~~~~~~~~~~~~~~~~ SHUTDOWN TELEGRAM BOT ~~~~~~~~~~~~~~~~~~~~~~~~")
+  sessSrc.sess.close()
+  sessDest.sess.close()
   bot.shutdown()
   Await.result(eol, Duration.Inf)
 }

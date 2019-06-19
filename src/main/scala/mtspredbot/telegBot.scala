@@ -58,9 +58,16 @@ class telegBot(log :org.slf4j.Logger,
     }
   }
   */
+  val tickersDict :Seq[Ticker] = sessDest.getTickersDict
 
   onCommand("help" ) {
     implicit msg => reply(BotCommandsHelper.getHelpText).void
+  }
+
+  onCommand("tickers" ) {
+    implicit msg => reply(
+      tickersDict.mkString(",")
+    ).void
   }
 
   onCommand("hello") { implicit msg =>
@@ -74,6 +81,24 @@ class telegBot(log :org.slf4j.Logger,
     }
   }
 
+  onCommand('info) { implicit msg =>
+    withArgs { args =>
+      log.info("onCommand "+msg)
+      replyMd(
+        if (args.isEmpty)
+          "No arguments provided."
+        else {
+          //todo: check here that input tickerCode correct and exists in mts_meta.tickers.
+          val tickerCode :String = args(0)
+          val tickerIdOpt :Option[Int] = sessDest.getTickerIDByCode(tickerCode)
+          tickerIdOpt match {
+            case Some(tickerId :Int) => "TickerCode (" + args(0) + ") has ID =["+tickerId+"]"
+            case None => "There is no element with tickerCode ("+ args(0) +") in database. Try command /tickers"
+          }
+        }
+      ).void
+    }
+  }
 
   onCommand("cmd1" ) {
     log.info("onCommand cmd1")
