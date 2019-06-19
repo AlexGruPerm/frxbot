@@ -6,9 +6,10 @@ import java.time.LocalDate
 
 import com.datastax.oss.driver.api.core.CqlSession
 import com.datastax.oss.driver.api.core.cql.{BoundStatement, Row}
-import scala.collection.JavaConverters._
 import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
+
+import scala.collection.JavaConverters._
 
 trait CassSession extends CassQueries {
   def config: Config
@@ -22,6 +23,7 @@ trait CassSession extends CassQueries {
       config.getString(confConnectPath+path+".dc"))
 
   def createSession(node :String,dc :String,port :Int = 9042) :CqlSession = {
+    //val node :Node = Node
     CqlSession.builder()
       .addContactPoint(new InetSocketAddress(node, port))
       .withLocalDatacenter(dc)

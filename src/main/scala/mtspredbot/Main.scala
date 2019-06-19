@@ -30,9 +30,9 @@ object Main extends App {
       throw e
   }
 
-  val (sessSrc :CassSessionSrc,sessDest :CassSessionDest)  =
+  val (sessDest :CassSessionDest,sessSrc :CassSessionSrc)  =
     try {
-      (CassSessionSrc.apply(config),CassSessionDest.apply(config))
+      (CassSessionDest.apply(config),CassSessionSrc.apply(config))
     } catch {
       case s: com.datastax.oss.driver.api.core.servererrors.SyntaxError => {
         log.error("[0] ERROR when get CassSessionXXX SyntaxError - msg="+s.getMessage+" cause="+s.getCause)
