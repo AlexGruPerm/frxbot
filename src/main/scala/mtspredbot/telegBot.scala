@@ -1,19 +1,5 @@
 package mtspredbot
-/*
-import java.net.{InetSocketAddress, Proxy}
 
-import cats.instances.future._
-import cats.syntax.functor._
-import com.bot4s.telegram.api.declarative.Commands
-import com.bot4s.telegram.clients.ScalajHttpClient
-import com.bot4s.telegram.future.{Polling, TelegramBot}
-import com.bot4s.telegram.methods.SendMessage
-import com.bot4s.telegram.models._
-import com.softwaremill.sttp.okhttp._
-import slogging.{LogLevel, LoggerConfig, PrintLoggerFactory}
-
-import scala.concurrent.Future
-*/
 import java.net.{InetSocketAddress, Proxy}
 
 import cats.instances.future._
@@ -23,7 +9,7 @@ import com.bot4s.telegram.clients.ScalajHttpClient
 import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.SendMessage
 import com.softwaremill.sttp.okhttp._
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.Config
 import slogging.{LogLevel, LoggerConfig, PrintLoggerFactory}
 
 import scala.concurrent.Future
@@ -31,36 +17,19 @@ object SttpBackends{
   val default = OkHttpFutureBackend()
 }
 
-//object MyBot extends TelegramBot with Polling with Commands
-//object telegBot extends TelegramBot
-class telegBot(log :org.slf4j.Logger) extends TelegramBot
+class telegBot(log :org.slf4j.Logger, config :Config) extends TelegramBot
   with Polling
   with Commands[Future] {
 
- // val log = LoggerFactory.getLogger(getClass.getName)
- // LoggerConfig.level = LogLevel.TRACE
-
-  /*
-  LoggerConfig.factory = PrintLoggerFactory()
-  LoggerConfig.level = LogLevel.TRACE
-  */
   LoggerConfig.factory = PrintLoggerFactory()
   LoggerConfig.level = LogLevel.TRACE
 
-  log.info("Begin BOT inside telegBot")
-
-  val config :Config = try {
-    ConfigFactory.load()
-  } catch {
-    case e:Exception =>
-      log.error("ConfigFactory.load - cause:"+e.getCause+" msg:"+e.getMessage)
-      throw e
-  }
   val confPrefix :String = "teleg."
   val botToken :String = config.getString(confPrefix+"token")
   val chatID :Long = config.getLong(confPrefix+"chatid")
   val proxyHost :String = config.getString(confPrefix+"proxy_host")
   val proxyPort :Int =  config.getInt(confPrefix+"proxy_port")
+  val userAdmin :Int = config.getInt(confPrefix+"user_admin")
 
   this.logger.info("BOT TOKEN : "+botToken)
 
@@ -87,12 +56,21 @@ class telegBot(log :org.slf4j.Logger) extends TelegramBot
   }
   */
 
+  onCommand("help" ) {
+    implicit msg => reply(BotCommandsHelper.getHelpText).void
+  }
+
   onCommand("hello") { implicit msg =>
-    using(_.from) { user =>
+    using(_.from) {
+      user =>
       log.info("onCommand hello")
-      reply("This is a message text to user.firstName=["+user.firstName+"]").void
+        user.id match {
+          case userAdmin => reply("Command from ADMIN.").void
+          case _ => reply("Command from USER ["+user.firstName+" "+user.lastName.getOrElse(" ")+"] with ID=["+user.id+"]").void
+        }
     }
   }
+
 
   onCommand("cmd1" ) {
     log.info("onCommand cmd1")
