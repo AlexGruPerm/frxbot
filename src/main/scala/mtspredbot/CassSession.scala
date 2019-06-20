@@ -71,7 +71,7 @@ class CassSessionSrc(configArg :Config) extends CassSession {
 
 object CassSessionSrc {
   def apply(configArg :Config):CassSessionSrc = {
-    Thread.sleep(3000)
+    //Thread.sleep(3000)
     return new CassSessionSrc(configArg)
   }
 }
@@ -82,7 +82,7 @@ object CassSessionSrc {
     private val (node: String, dc: String) = getNodeAddressDc("dest")
     log.debug("CassSessionDest address-dc = " + node + " - " + dc)
 
-    def getIpDc: String = node + "(" + dc + ")"
+    def getIpDc: String = node + " - " + dc
 
     val sess: CqlSession = createSession(node, dc)
 
@@ -122,7 +122,7 @@ object CassSessionSrc {
 
 object CassSessionDest {
   def apply(configArg :Config):CassSessionDest = {
-    Thread.sleep(3000)
+    //Thread.sleep(3000)
     return new CassSessionDest(configArg)
   }
 }

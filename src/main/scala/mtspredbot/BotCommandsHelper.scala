@@ -8,7 +8,8 @@ object BotCommandsHelper {
       |DEST - Destination cassandra database
       |A,B  - Ticker code (like EURUSD, USDCHF)
       |Commands (api description):
-      |/info tickerCode -- Example info EURUSD
+      |/check X -- Ex: check SRC, check DEST
+      |/info tickerCode -- Ex: info EURUSD
       |:show information from src,dest Last DDATE last TS and Diffs.
       |
       |/hello

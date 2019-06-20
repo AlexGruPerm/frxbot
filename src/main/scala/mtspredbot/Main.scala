@@ -62,8 +62,8 @@ object Main extends App {
     """
        Bot "mtsPredBot" started and ready to communicate.
        You can use command /help to see possible commands.
-       Source (SRC) OPEN = """ + SeesionConnectedCheck(sessSrc.sess.isClosed) + """ for """+sessSrc.getIpDc+"""
-       Destination (DEST) OPEN = """ + SeesionConnectedCheck(sessDest.sess.isClosed) + """ for """+sessDest.getIpDc+"""
+       Source       (SRC) OPEN = """ + SeesionConnectedCheck(sessSrc.sess.isClosed) + """ """+sessSrc.getIpDc+"""
+       Destination (DEST) OPEN = """ + SeesionConnectedCheck(sessDest.sess.isClosed) + """ """+sessDest.getIpDc+"""
     """.stripMargin)
 
   println("Press [ENTER] to shutdown the bot, it may take a few seconds...")
