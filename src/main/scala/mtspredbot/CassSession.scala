@@ -38,7 +38,42 @@ trait CassSession extends CassQueries {
         log.error(" prepareSQL - "+e.getMessage)
         throw e
     }
+
+  private def simpleRound1Double(valueD : Double) = (valueD * 10).round / 10.toDouble
+
+   val rowToTicker :(Row => Ticker) = (row: Row) =>
+    Ticker(
+      row.getInt("ticker_id"),
+      row.getString("ticker_code")
+    )
+
+   val rowToTicksCnt =(row :Row, tickersDict :Seq[Ticker], ticksTotal :Long) => {
+    val thisTickerID = row.getInt("ticker_id")
+    val cnt = row.getLong("cnt")
+    TicksCnt(
+      thisTickerID,
+      tickersDict.find(_.tickerId == thisTickerID).map(_.tickerCode).getOrElse("n/n"),
+      cnt,
+      simpleRound1Double(cnt*100L/ticksTotal)
+    )
+  }
+
+   val rowToBarDateStat = (row :Row, tickersDict :Seq[Ticker]) => {
+    val thisTickerID = row.getInt("ticker_id")
+    BarDateStat(
+      thisTickerID,
+      tickersDict.find(_.tickerId == thisTickerID).map(_.tickerCode).getOrElse("n/n"),
+      row.getInt("bar_width_sec"),
+      row.getLocalDate("ddate")
+    )
+  }
+
 }
+
+
+
+
+
 
 class CassSessionSrc(configArg :Config) extends CassSession {
   override val config: Config = configArg
@@ -54,16 +89,18 @@ class CassSessionSrc(configArg :Config) extends CassSession {
   val prepMaxDdateSrc: BoundStatement = prepareSql(sess, sqlMaxDdate)
   val prepMaxTsSrc: BoundStatement = prepareSql(sess, sqlMaxTs)
 
-  val rowToTicker :(Row => Ticker) = (row: Row) =>
-    Ticker(
-      row.getInt("ticker_id"),
-      row.getString("ticker_code")
-    )
+  val prepTicksTotal : BoundStatement = prepareSql(sess, sqlTicksTotal)
+  val prepTicksByTicker : BoundStatement = prepareSql(sess, sqlTicksByTicker)
+  val prepTicksDistrib : BoundStatement = prepareSql(sess, sqlTicksDistrib)
 
-  def getTickersDict :Seq[Ticker] = {
-    sess.execute(prepTickersDict
-    ).all().iterator.asScala.toSeq.map(rowToTicker).toList
-  }
+  val prepBarsAgrStats : BoundStatement = prepareSql(sess, sqlBarsAgrStats)
+
+  private val tickersDict :Seq[Ticker] =  sess.execute(prepTickersDict).all().iterator.asScala.toSeq.map(rowToTicker).toList
+
+
+  def getTickersDict :Seq[Ticker] = tickersDict/*{
+    sess.execute(prepTickersDict).all().iterator.asScala.toSeq.map(rowToTicker).toList
+  }*/
 
   def getMaxDdate(tickerID: Int): LocalDate =
     sess.execute(prepMaxDdateSrc
@@ -75,6 +112,20 @@ class CassSessionSrc(configArg :Config) extends CassSession {
       .setInt("tickerID", tickerID)
       .setLocalDate("maxDdate", thisDdate))
       .one().getLong("ts")
+
+  def getTicksTotal :Long = sess.execute(prepTicksTotal).one().getLong("cnt")
+
+  def getTicksByTicker(tickerID: Int) :Long =
+    sess.execute(prepTicksByTicker
+      .setInt("tickerID", tickerID))
+      .one().getLong("cnt")
+
+  def getTicksDistrib :Seq[TicksCnt] = sess.execute(prepTicksDistrib).all().iterator.asScala.toSeq
+    .map(r => rowToTicksCnt(r,getTickersDict,getTicksTotal)).toList
+
+  def getBarsDdateStats : Seq[BarDateStat] = sess.execute(prepBarsAgrStats).all().iterator.asScala.toSeq
+    .map(r => rowToBarDateStat(r,getTickersDict)).toList
+
 
 }
 

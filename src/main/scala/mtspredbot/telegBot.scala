@@ -72,9 +72,7 @@ class telegBot(log :org.slf4j.Logger,
     import scala.compat.Platform.EOL
 
     onCommand("tickers" ) {
-      implicit msg => reply(
-        tickersDict.sortBy(t => t.tickerId).mkString(EOL)
-      ).void
+      implicit msg => reply(tickersDict.sortBy(t => t.tickerId).mkString(EOL)).void
     }
 
   /*
@@ -102,7 +100,7 @@ class telegBot(log :org.slf4j.Logger,
 
   onCommand('check) { implicit msg =>
       replyMd(
-          (sessSrc.sess.isClosed == true match {case true => " disconnected" case false => " connected"})
+          sessSrc.sess.isClosed == true match {case true => " disconnected" case false => " connected"}
       ).void
   }
 
@@ -186,10 +184,7 @@ class telegBot(log :org.slf4j.Logger,
             "No arguments provided."
           else {
             //todo: check here that input tickerCode correct and exists in mts_meta.tickers.
-            val userTickerCode :String = args(0).toUpperCase
-            val tickerIdOpt :Option[Int] = tickersDict.find(_.tickerCode.toUpperCase == userTickerCode).map(_.tickerId)
-            //log.info(" tickerIdOpt =["+tickerIdOpt+"] for "+userTickerCode)
-            tickerIdOpt match {
+            tickersDict.find(_.tickerCode.toUpperCase == args(0).toUpperCase).map(_.tickerId) match {
               case Some(tickerId :Int) =>
               {
                 val tickerCode :String = args(0)
@@ -214,6 +209,96 @@ class telegBot(log :org.slf4j.Logger,
         ).void
       }
     }
+
+
+  onCommand('tickstotal) { implicit msg =>
+    replyMd(
+      sessSrc.getTicksTotal.toString
+    ).void
+  }
+
+  onCommand('tickscode) { implicit msg =>
+    withArgs { args => //todo: move onCommand log into separate common method
+      onCommandLog(msg)
+      replyMd(
+        if (args.isEmpty)
+          "No arguments provided."
+        else {
+          //todo: check here that input tickerCode correct and exists in mts_meta.tickers.
+          tickersDict.find(_.tickerCode.toUpperCase == args(0).toUpperCase).map(_.tickerId) match {
+            case Some(tickerId :Int) =>
+            {
+              val tickerCode :String = args(0)
+              val cnt :Long = sessSrc.getTicksByTicker(tickerId)
+              val res :String =
+                s"*$tickerCode* TICKSCOUNT $cnt"
+              onInfoResLog(res)
+              res
+            }
+            case None => "There is no element with tickerCode ("+ args(0) +") in database. Try command /tickers"
+          }
+        }
+      ).void
+    }
+  }
+
+  onCommand('ticksall) { implicit msg =>
+    onCommandLog(msg)
+    val ticksCounts: Seq[TicksCnt] = sessSrc.getTicksDistrib
+    //Head of output
+    reply("SYMBOL [TickerID] TicksCount Percent").void
+    reply(
+      ticksCounts.sortBy(t => t.tickCount)(Ordering[Long].reverse).mkString(EOL)
+    ).void
+  }
+
+  implicit val localDateOrdering: Ordering[LocalDate] = Ordering.by(_.toEpochDay)
+
+  onCommand('barsstat) { implicit msg =>
+    onCommandLog(msg)
+    val barsStats: Seq[BarDateStat] = sessSrc.getBarsDdateStats
+    //val seqTickersId :Seq[Int] = barsStats.map(e => e.tickerId).distinct
+    val dist : Seq[BarDateStat] =
+      (for(elm <- barsStats.map(e => e.tickerId).distinct) yield {
+        barsStats.filter(p => p.tickerId == elm).maxBy(elm => elm.dDate)
+      }).sortBy(t => t.dDate.toEpochDay)(Ordering[Long].reverse)
+
+    //Head of output
+    reply("SYMBOL [TickerID]  MAXDATE").void
+    reply(dist.mkString(EOL)
+    ).void
+  }
+
+
+
+
+
+  onCommand('author) { implicit msg =>
+        onCommandLog(msg)
+        replyMd(
+          s""" *Yakushev Aleksey*
+             | _ugr@bk.ru_
+             | _yakushevaleksey@gmail.com_
+             | telegram = @AlexGruPerm
+             | vk       = https://vk.com/id11099676
+             | linkedin = https://www.linkedin.com/comm/in/yakushevaleksey
+             | gihub    = https://github.com/AlexGruPerm
+             | bigdata  = https://yakushev-bigdata.blogspot.com
+             | oracle   = http://yakushev-oracle.blogspot.com
+             """.stripMargin
+        ).void
+    }
+
+  /*
+//tickscode
+//ticksall
+  */
+
+  /*
+  def getTicksTotal :Long
+  def getTicksByTicker(tickerID: Int) :Long =
+  def getTicksDistrib :Seq[TicksCnt]
+  */
 
   /*
     onCommand("cmd1" ) {

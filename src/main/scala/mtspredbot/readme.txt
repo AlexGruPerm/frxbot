@@ -1,3 +1,8 @@
+
+https://howtoprogram.xyz/2017/02/18/using-group-apache-cassandara/
+GROUP BY in cassandra 3.10
+
+
 https://github.com/bot4s/telegram
 https://habr.com/ru/post/262247/
 https://telegram.me/botfather
