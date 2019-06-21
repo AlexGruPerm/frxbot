@@ -16,10 +16,9 @@ assemblyMergeStrategy in assembly := {
   case "log4j.properties" => MergeStrategy.last
   case "logback.xml" => MergeStrategy.last
   case "resources/logback.xml" => MergeStrategy.last
-  case "application.conf" => MergeStrategy.discard
-  //case PathList("reference.conf") => MergeStrategy.concat
-  case PathList("reference.conf") => MergeStrategy.discard
-  case "reference.conf" => MergeStrategy.discard
+  case "resources/application.conf" => MergeStrategy.last
+  case "application.conf" => MergeStrategy.last
+  case PathList("reference.conf") => MergeStrategy.concat
   case x => MergeStrategy.first
 }
 

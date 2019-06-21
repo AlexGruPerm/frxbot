@@ -149,21 +149,18 @@ class telegBot(log :org.slf4j.Logger,
             tickerIdOpt match {
               case Some(tickerId :Int) =>
               {
+                val tickerCode :String = args(0)
                 val thisTickerMaxDdate :LocalDate = sessSrc.getMaxDdate(tickerId)
                 val thisTickerMaxTs :Long = sessSrc.getMaxTs(tickerId,thisTickerMaxDdate)
                 val currTimestamp :Long = System.currentTimeMillis
                 val datDateTime = getDateAsString(convertLongToDate(thisTickerMaxTs))
-                  val botDateTime = getDateAsString(convertLongToDate(currTimestamp))
-                s"""$args(0) $thisTickerMaxDdate
+                val botDateTime = getDateAsString(convertLongToDate(currTimestamp))
+                val diffSeconds = currTimestamp/1000L - thisTickerMaxTs/1000L
+                s"""$tickerCode  MAXDATE  $thisTickerMaxDdate
                    | datTS = [$thisTickerMaxTs] $datDateTime
-                   | botTS = [$currTimestamp] $botDateTime """.stripMargin
-
-                /*
-                 args(0) + """+thisTickerMaxDdate+"""
-                  datTS = ["""+thisTickerMaxTs+"""] """+getDateAsString(convertLongToDate(thisTickerMaxTs)) +"""
-                  botTS = ["""+currTimestamp+"""] """+getDateAsString(convertLongToDate(currTimestamp))+"""
-                """
-                */
+                   | botTS = [$currTimestamp] $botDateTime
+                   | diff  = $diffSeconds seconds.
+                   """.stripMargin
               }
               case None => "There is no element with tickerCode ("+ args(0) +") in database. Try command /tickers"
             }

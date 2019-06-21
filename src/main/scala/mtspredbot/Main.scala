@@ -13,15 +13,15 @@ object Main extends App {
   val log = LoggerFactory.getLogger(getClass.getName)
   log.info("~~~~~~~~~~~~~~~~~~~~~~~~ BEGIN TELEGRAM BOT ~~~~~~~~~~~~~~~~~~~~~~~~")
 
-  val config :Config = try {
+  val (config :Config, configFilename :String) = try {
     if (args.length == 0) {
       log.info("There is no external config file.")
-      ConfigFactory.load()
+      (ConfigFactory.load()," ")
     } else {
       val configFilename :String = System.getProperty("user.dir")+File.separator+args(0)
       log.info("There is external config file, path="+configFilename)
       val fileConfig :Config = ConfigFactory.parseFile(new io.File(configFilename))
-      ConfigFactory.load(fileConfig)
+      (ConfigFactory.load(fileConfig),configFilename)
     }
 
   } catch {
@@ -30,9 +30,11 @@ object Main extends App {
       throw e
   }
 
-  val (sessDest :CassSessionDest,sessSrc :CassSessionSrc)  =
+  val confFile = new java.io.File(configFilename)
+
+  val (sessDest :CassSessionDest, sessSrc :CassSessionSrc)  =
     try {
-      (CassSessionDest.apply(config),CassSessionSrc.apply(config))
+      (CassSessionDest.apply(config,confFile),CassSessionSrc.apply(config,confFile))
     } catch {
       case s: com.datastax.oss.driver.api.core.servererrors.SyntaxError => {
         log.error("[0] ERROR when get CassSessionXXX SyntaxError - msg="+s.getMessage+" cause="+s.getCause)
