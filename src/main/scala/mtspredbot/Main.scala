@@ -29,13 +29,13 @@ object Main extends App {
       throw e
   }
 
-
-  val (sessDest :CassSessionDest, sessSrc :CassSessionSrc)  =
+  val sessSrc :CassSessionSrc =
     try {
-      (CassSessionDest.apply(config),CassSessionSrc.apply(config))
+      CassSessionSrc.apply(config)
     } catch {
       case s: com.datastax.oss.driver.api.core.servererrors.SyntaxError => {
         log.error("[0] ERROR when get CassSessionXXX SyntaxError - msg="+s.getMessage+" cause="+s.getCause)
+        throw s
       }
       case c: CassConnectException => {
         log.error("[1] ERROR when get CassSessionXXX ["+c.getMessage+"] Cause["+c.getCause+"]")
@@ -52,7 +52,8 @@ object Main extends App {
         throw e
     }
 
-  val bot = new telegBot(log, config, sessSrc, sessDest)
+
+  val bot = new telegBot(log, config, sessSrc)
   val eol = bot.run
 
   def SeesionConnectedCheck(isClosed :Boolean) :String =
@@ -62,15 +63,13 @@ object Main extends App {
     """
        Bot "mtsPredBot" started and ready to communicate.
        You can use command /help to see possible commands.
-       SRC  - """ + SeesionConnectedCheck(sessSrc.sess.isClosed)  + """ """+sessSrc.getIpDc+"""
-       DEST - """ + SeesionConnectedCheck(sessDest.sess.isClosed) + """ """+sessDest.getIpDc+"""
+       Cassandra DB  - """ + SeesionConnectedCheck(sessSrc.sess.isClosed)  + """ """+sessSrc.getIpDc+"""
     """.stripMargin)
 
   println("Press [ENTER] to shutdown the bot, it may take a few seconds...")
   scala.io.StdIn.readLine()
   log.info("~~~~~~~~~~~~~~~~~~~~~~~~ SHUTDOWN TELEGRAM BOT ~~~~~~~~~~~~~~~~~~~~~~~~")
   sessSrc.sess.close()
-  sessDest.sess.close()
   bot.shutdown()
   Await.result(eol, Duration.Inf)
 }

@@ -8,8 +8,8 @@ import com.datastax.oss.driver.api.core.CqlSession
 import com.datastax.oss.driver.api.core.cql.{BoundStatement, Row}
 import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
-
 import scala.collection.JavaConverters._
+//import scala.collection.JavaConverters._
 
 trait CassSession extends CassQueries {
   def config: Config
@@ -50,8 +50,20 @@ class CassSessionSrc(configArg :Config) extends CassSession {
 
   val sess: CqlSession = createSession(node, dc)
 
+  val prepTickersDict: BoundStatement = prepareSql(sess,sqlTickersDict)
   val prepMaxDdateSrc: BoundStatement = prepareSql(sess, sqlMaxDdate)
   val prepMaxTsSrc: BoundStatement = prepareSql(sess, sqlMaxTs)
+
+  val rowToTicker :(Row => Ticker) = (row: Row) =>
+    Ticker(
+      row.getInt("ticker_id"),
+      row.getString("ticker_code")
+    )
+
+  def getTickersDict :Seq[Ticker] = {
+    sess.execute(prepTickersDict
+    ).all().iterator.asScala.toSeq.map(rowToTicker).toList
+  }
 
   def getMaxDdate(tickerID: Int): LocalDate =
     sess.execute(prepMaxDdateSrc
@@ -69,55 +81,5 @@ class CassSessionSrc(configArg :Config) extends CassSession {
 object CassSessionSrc {
   def apply(configArg :Config):CassSessionSrc = {
     return new CassSessionSrc(configArg)
-  }
-}
-
-  class CassSessionDest(configArg :Config) extends CassSession{
-    override val config :Config = configArg
-
-    private val (node: String, dc: String) = getNodeAddressDc("dest")
-    log.debug("CassSessionDest address-dc = " + node + " - " + dc)
-
-    def getIpDc: String = node + " - " + dc
-
-    val sess: CqlSession = createSession(node, dc)
-
-    val prepTickerId: BoundStatement = prepareSql(sess, sqlTickerId)
-    val prepTickersDict: BoundStatement = prepareSql(sess,sqlTickersDict)
-    val prepMaxDdateDest: BoundStatement = prepareSql(sess, sqlMaxDdate)
-    val prepMaxTsDest: BoundStatement = prepareSql(sess, sqlMaxTs)
-
-    def getTickerIDByCode(tickerCode :String) :Option[Int] =
-      Option(sess.execute(prepTickerId
-        .setString("tickerCode", tickerCode))
-        .one().getInt("ticker_id"))
-
-    val rowToTicker :(Row => Ticker) = (row: Row) =>
-      Ticker(
-        row.getInt("ticker_id"),
-        row.getString("ticker_code")
-      )
-
-    def getTickersDict :Seq[Ticker] = {
-      sess.execute(prepTickersDict
-      ).all().iterator.asScala.toSeq.map(rowToTicker).toList
-    }
-
-    def getMaxExistDdateDest(tickerId: Int) :LocalDate =
-      sess.execute(prepMaxDdateDest
-        .setInt("tickerID", tickerId))
-        .one().getLocalDate("ddate")
-
-    def getMaxTsBydateDest(tickerId: Int, thisDate: LocalDate): Long =
-      sess.execute(prepMaxTsDest
-        .setInt("tickerID", tickerId)
-        .setLocalDate("maxDdate", thisDate))
-        .one().getLong("ts")
-
-}
-
-object CassSessionDest {
-  def apply(configArg :Config):CassSessionDest = {
-    return new CassSessionDest(configArg)
   }
 }

@@ -5,10 +5,9 @@ object BotCommandsHelper {
     """
       |Commands:
       |/info tickerCode -- Ex: info EURUSD
-      |
+      |/tickers - return list of using tickers (symbols) from dest.
       |/hello
       |/cmd1
-      |/tickers - return list of using tickers (symbols) from dest.
       |/select A B
     """.stripMargin
 

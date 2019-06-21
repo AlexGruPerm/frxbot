@@ -10,6 +10,7 @@ import cats.syntax.functor._
 import com.bot4s.telegram.api.declarative.Commands
 import com.bot4s.telegram.future.{Polling, TelegramBot}
 import com.bot4s.telegram.methods.SendMessage
+import com.bot4s.telegram.models.Message
 import com.softwaremill.sttp.okhttp._
 import com.typesafe.config.Config
 import slogging.{LogLevel, LoggerConfig, PrintLoggerFactory}
@@ -21,8 +22,7 @@ object SttpBackends{
 
 class telegBot(log :org.slf4j.Logger,
                config :Config,
-               sessSrc :CassSessionSrc,
-               sessDest :CassSessionDest) extends TelegramBot
+               sessSrc :CassSessionSrc) extends TelegramBot
   with Polling
   with Commands[Future] {
 
@@ -51,6 +51,7 @@ class telegBot(log :org.slf4j.Logger,
       request(SendMessage(chatID, msgText)).void
     }
 
+
     /*
     override def receiveMessage(msg: Message): Future[Unit] ={
       println("111111111111111 we receive message from "+msg.from )
@@ -62,7 +63,7 @@ class telegBot(log :org.slf4j.Logger,
       }
     }
     */
-    val tickersDict :Seq[Ticker] = sessDest.getTickersDict
+    val tickersDict :Seq[Ticker] = sessSrc.getTickersDict
 
     onCommand("help" ) {
       implicit msg => reply(BotCommandsHelper.getHelpText).void
@@ -76,6 +77,7 @@ class telegBot(log :org.slf4j.Logger,
       ).void
     }
 
+  /*
     onCommand("hello") { implicit msg =>
       using(_.from) {
         user =>
@@ -86,34 +88,74 @@ class telegBot(log :org.slf4j.Logger,
           }
       }
     }
+  */
 
     onCommand("close") { implicit msg =>
       using(_.from) {
         user =>
           log.info("onCommand close connections.")
           sessSrc.sess.close()
-          sessDest.sess.close()
           reply("Connection closed. Try /check.").void
       }
     }
 
 
-    onCommand('check) { implicit msg =>
-      withArgs { args =>
-        log.info("onCommand ["+msg+"]")
-        replyMd(
-          if (args.isEmpty)
-            "No arguments provided."
-          else {
-            val dbLocation :String = args(0)
-            dbLocation match {
-              case "SRC"|"src"|"Src"    => dbLocation + (sessSrc.sess.isClosed==true match {case true => " disconnected" case false => " connected"})
-              case "DEST"|"dest"|"Dest" => dbLocation + (sessDest.sess.isClosed==true match {case true => " disconnected" case false => " connected"})
-              case _  => "Unknown location ["+dbLocation+"]"
-            }
+  onCommand('check) { implicit msg =>
+      replyMd(
+          (sessSrc.sess.isClosed == true match {case true => " disconnected" case false => " connected"})
+      ).void
+  }
+
+  /*
+  just example
+  onCommand('check) { implicit msg =>
+    withArgs { args =>
+      log.info("onCommand ["+msg+"]")
+      replyMd(
+        if (args.isEmpty)
+          "No arguments provided."
+        else {
+          val dbLocation :String = args(0)
+          dbLocation match {
+            case "SRC"|"src"|"Src"    => dbLocation + (sessSrc.sess.isClosed==true match {case true => " disconnected" case false => " connected"})
+            case _  => "Unknown location ["+dbLocation+"]"
           }
-        ).void
-      }
+        }
+      ).void
+    }
+  }
+  */
+
+    def onCommandLog(msg :Message) ={
+      log.info(" Command ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ")
+      /** USER */
+      log.info(" User :")
+      log.info(" ID = "+msg.from.map(u => u.id).getOrElse(0))
+      log.info(" FIRSTNAME = "+msg.from.map(u => u.firstName).getOrElse(" "))
+      log.info(" LASTNAME = "+msg.from.map(u => u.lastName.getOrElse(" ")).getOrElse(" "))
+      log.info(" USERNAME = "+msg.from.map(u => u.username.getOrElse(" ")).getOrElse(" "))
+      log.info(" LANG = "+msg.from.map(u => u.languageCode.getOrElse(" ")).getOrElse(" "))
+      /**~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+      //log.info(" SOURCE = "+msg.source) equal msg.chat.id
+      //log.info(" CONTACT userId      = "+msg.contact.map(c => c.userId))
+      //log.info(" CONTACT phoneNumber = "+msg.contact.map(c => c.phoneNumber))
+      log.info(" LOC latitude  = "+msg.location.map(l => l.latitude))
+      log.info(" LOC longitude = "+msg.location.map(l => l.longitude))
+      log.info(" Chat ID    = "+msg.chat.id)
+      //log.info(" Chat Desc  = "+msg.chat.description)
+      //log.info(" Chat Title = "+msg.chat.title)
+      /**~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+      log.info(" msg date        = "+msg.date)
+      //log.info(" msg forwardDate = "+msg.forwardDate)
+      log.info(" messageId = "+msg.messageId)
+      log.info(" text = "+msg.text.mkString(","))
+      log.info(" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ")
+    }
+
+    def onInfoResLog(res :String) ={
+      log.info(" ---------------------------------------- ")
+      log.info(res)
+      log.info(" ---------------------------------------- ")
     }
 
     def convertLongToDate(l: Long): Date = new Date(l)
@@ -138,7 +180,7 @@ class telegBot(log :org.slf4j.Logger,
 
     onCommand('info) { implicit msg =>
       withArgs { args => //todo: move onCommand log into separate common method
-        log.info(" ##########  onCommand ["+msg+"]")
+        onCommandLog(msg)
         replyMd(
           if (args.isEmpty)
             "No arguments provided."
@@ -146,7 +188,7 @@ class telegBot(log :org.slf4j.Logger,
             //todo: check here that input tickerCode correct and exists in mts_meta.tickers.
             val userTickerCode :String = args(0).toUpperCase
             val tickerIdOpt :Option[Int] = tickersDict.find(_.tickerCode.toUpperCase == userTickerCode).map(_.tickerId)
-            log.info(" tickerIdOpt =["+tickerIdOpt+"] for "+userTickerCode)
+            //log.info(" tickerIdOpt =["+tickerIdOpt+"] for "+userTickerCode)
             tickerIdOpt match {
               case Some(tickerId :Int) =>
               {
@@ -157,11 +199,14 @@ class telegBot(log :org.slf4j.Logger,
                 val datDateTime = getDateAsString(convertLongToDate(thisTickerMaxTs))
                 val botDateTime = getDateAsString(convertLongToDate(currTimestamp))
                 val diffSeconds = currTimestamp/1000L - thisTickerMaxTs/1000L
-                s"""$tickerCode  MAXDATE  $thisTickerMaxDdate
-                   | datTS = [$thisTickerMaxTs] $datDateTime
-                   | botTS = [$currTimestamp] $botDateTime
-                   | diff  = $diffSeconds seconds.
+                val res :String =
+                s"""*$tickerCode* MAXDATE _$thisTickerMaxDdate _
+                   | dat = $thisTickerMaxTs   $datDateTime
+                   | bot = $currTimestamp   $botDateTime
+                   | dif = $diffSeconds sec
                    """.stripMargin
+                onInfoResLog(res)
+                res
               }
               case None => "There is no element with tickerCode ("+ args(0) +") in database. Try command /tickers"
             }
@@ -170,6 +215,7 @@ class telegBot(log :org.slf4j.Logger,
       }
     }
 
+  /*
     onCommand("cmd1" ) {
       log.info("onCommand cmd1")
       implicit msg => reply("This is a message text 1").void
@@ -186,6 +232,8 @@ class telegBot(log :org.slf4j.Logger,
         ).void
       }
     }
+  */
+
   }
 
 
