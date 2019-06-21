@@ -19,6 +19,8 @@ assemblyMergeStrategy in assembly := {
   case "resources/application.conf" => MergeStrategy.last
   case "application.conf" => MergeStrategy.last
   case PathList("reference.conf") => MergeStrategy.concat
+  case "resources/control.conf" => MergeStrategy.discard
+  case "control.conf" => MergeStrategy.discard
   case x => MergeStrategy.first
 }
 

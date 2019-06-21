@@ -137,15 +137,16 @@ class telegBot(log :org.slf4j.Logger,
     }
 
     onCommand('info) { implicit msg =>
-      withArgs { args =>
-        log.info("onCommand ["+msg+"]")
+      withArgs { args => //todo: move onCommand log into separate common method
+        log.info(" ##########  onCommand ["+msg+"]")
         replyMd(
           if (args.isEmpty)
             "No arguments provided."
           else {
             //todo: check here that input tickerCode correct and exists in mts_meta.tickers.
             val userTickerCode :String = args(0).toUpperCase
-            val tickerIdOpt :Option[Int] = tickersDict.find(_.tickerCode == userTickerCode).map(_.tickerId)
+            val tickerIdOpt :Option[Int] = tickersDict.find(_.tickerCode.toUpperCase == userTickerCode).map(_.tickerId)
+            log.info(" tickerIdOpt =["+tickerIdOpt+"] for "+userTickerCode)
             tickerIdOpt match {
               case Some(tickerId :Int) =>
               {

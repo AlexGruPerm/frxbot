@@ -1,12 +1,10 @@
 package mtspredbot
 
 
-import java.io.File
 import java.net.InetSocketAddress
 import java.time.LocalDate
 
 import com.datastax.oss.driver.api.core.CqlSession
-import com.datastax.oss.driver.api.core.config.DriverConfigLoader
 import com.datastax.oss.driver.api.core.cql.{BoundStatement, Row}
 import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
@@ -15,7 +13,6 @@ import scala.collection.JavaConverters._
 
 trait CassSession extends CassQueries {
   def config: Config
-  def file :File
 
   val log = LoggerFactory.getLogger(getClass.getName)
 
@@ -25,37 +22,11 @@ trait CassSession extends CassQueries {
     (config.getString(confConnectPath+path+".ip"),
       config.getString(confConnectPath+path+".dc"))
 
-  def createSession(node :String,dc :String,port :Int = 9042) :CqlSession = {
-    log.info("createSession")
-    log.info("AbsolutePath = "+file.getAbsolutePath)
-    log.info("Name="+file.getName)
-    log.info("CanonicalPath="+file.getCanonicalPath)
-    log.info("AbsoluteFile="+file.getAbsoluteFile)
-    log.info("AbsolutePath="+file.getAbsolutePath)
-    log.info("ParentFile="+file.getParentFile)
-
-    //v1
-  /*
-    val loader =
-      DriverConfigLoader.programmaticBuilder()
-        .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(30))
-        .withDuration(DefaultDriverOption.CONNECTION_INIT_QUERY_TIMEOUT, Duration.ofSeconds(30))
-        .build()
-
+  def createSession(node :String,dc :String,port :Int = 9042) :CqlSession =
     CqlSession.builder()
       .addContactPoint(new InetSocketAddress(node, port))
-      .withConfigLoader(loader)
       .withLocalDatacenter(dc)
       .build()
-*/
-
-    CqlSession.builder()
-      .addContactPoint(new InetSocketAddress(node, port))
-      .withConfigLoader(DriverConfigLoader.fromFile(file))
-      .withLocalDatacenter(dc)
-      .build()
-
-  }
 
   //todo: add here try except for misprinting sqls!
   def prepareSql(sess :CqlSession,sqlText :String) :BoundStatement =
@@ -69,10 +40,8 @@ trait CassSession extends CassQueries {
     }
 }
 
-
-class CassSessionSrc(configArg :Config, fileArg :File) extends CassSession {
+class CassSessionSrc(configArg :Config) extends CassSession {
   override val config: Config = configArg
-  override val file: File = fileArg
 
   private val (node: String, dc: String) = getNodeAddressDc("src")
   log.debug("CassSessionSrc address-dc = " + node + " - " + dc)
@@ -98,15 +67,13 @@ class CassSessionSrc(configArg :Config, fileArg :File) extends CassSession {
 }
 
 object CassSessionSrc {
-  def apply(configArg :Config, fileArg :File):CassSessionSrc = {
-    //Thread.sleep(3000)
-    return new CassSessionSrc(configArg,fileArg)
+  def apply(configArg :Config):CassSessionSrc = {
+    return new CassSessionSrc(configArg)
   }
 }
 
-  class CassSessionDest(configArg :Config, fileArg :File) extends CassSession{
+  class CassSessionDest(configArg :Config) extends CassSession{
     override val config :Config = configArg
-    override val file: File = fileArg
 
     private val (node: String, dc: String) = getNodeAddressDc("dest")
     log.debug("CassSessionDest address-dc = " + node + " - " + dc)
@@ -150,8 +117,7 @@ object CassSessionSrc {
 }
 
 object CassSessionDest {
-  def apply(configArg :Config, fileArg :File):CassSessionDest = {
-    //Thread.sleep(3000)
-    return new CassSessionDest(configArg,fileArg)
+  def apply(configArg :Config):CassSessionDest = {
+    return new CassSessionDest(configArg)
   }
 }

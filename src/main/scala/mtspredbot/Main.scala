@@ -13,28 +13,26 @@ object Main extends App {
   val log = LoggerFactory.getLogger(getClass.getName)
   log.info("~~~~~~~~~~~~~~~~~~~~~~~~ BEGIN TELEGRAM BOT ~~~~~~~~~~~~~~~~~~~~~~~~")
 
-  val (config :Config, configFilename :String) = try {
+  val config :Config = try {
     if (args.length == 0) {
       log.info("There is no external config file.")
-      (ConfigFactory.load()," ")
+      ConfigFactory.load()
     } else {
       val configFilename :String = System.getProperty("user.dir")+File.separator+args(0)
       log.info("There is external config file, path="+configFilename)
       val fileConfig :Config = ConfigFactory.parseFile(new io.File(configFilename))
-      (ConfigFactory.load(fileConfig),configFilename)
+      ConfigFactory.load(fileConfig)
     }
-
   } catch {
     case e:Exception =>
       log.error("ConfigFactory.load - cause:"+e.getCause+" msg:"+e.getMessage)
       throw e
   }
 
-  val confFile = new java.io.File(configFilename)
 
   val (sessDest :CassSessionDest, sessSrc :CassSessionSrc)  =
     try {
-      (CassSessionDest.apply(config,confFile),CassSessionSrc.apply(config,confFile))
+      (CassSessionDest.apply(config),CassSessionSrc.apply(config))
     } catch {
       case s: com.datastax.oss.driver.api.core.servererrors.SyntaxError => {
         log.error("[0] ERROR when get CassSessionXXX SyntaxError - msg="+s.getMessage+" cause="+s.getCause)
@@ -58,14 +56,14 @@ object Main extends App {
   val eol = bot.run
 
   def SeesionConnectedCheck(isClosed :Boolean) :String =
-    !isClosed==true match {case true => "YES" case false => "NO"}
+    !isClosed==true match {case true => "connected" case false => "disconnected"}
 
   bot.sendMessageTest(
     """
        Bot "mtsPredBot" started and ready to communicate.
        You can use command /help to see possible commands.
-       Source       (SRC) OPEN = """ + SeesionConnectedCheck(sessSrc.sess.isClosed) + """ """+sessSrc.getIpDc+"""
-       Destination (DEST) OPEN = """ + SeesionConnectedCheck(sessDest.sess.isClosed) + """ """+sessDest.getIpDc+"""
+       SRC  - """ + SeesionConnectedCheck(sessSrc.sess.isClosed)  + """ """+sessSrc.getIpDc+"""
+       DEST - """ + SeesionConnectedCheck(sessDest.sess.isClosed) + """ """+sessDest.getIpDc+"""
     """.stripMargin)
 
   println("Press [ENTER] to shutdown the bot, it may take a few seconds...")
