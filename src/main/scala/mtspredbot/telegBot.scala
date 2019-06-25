@@ -1,9 +1,7 @@
 package mtspredbot
 
 import java.net.{InetSocketAddress, Proxy}
-import java.text.SimpleDateFormat
 import java.time.LocalDate
-import java.util.Date
 
 import cats.instances.future._
 import cats.syntax.functor._
@@ -24,7 +22,9 @@ class telegBot(log :org.slf4j.Logger,
                config :Config,
                sessSrc :CassSessionSrc) extends TelegramBot
   with Polling
-  with Commands[Future] {
+  with Commands[Future]
+  with CommonFuncs
+{
 
   LoggerConfig.factory = PrintLoggerFactory()
   LoggerConfig.level = LogLevel.TRACE
@@ -156,25 +156,7 @@ class telegBot(log :org.slf4j.Logger,
       log.info(" ---------------------------------------- ")
     }
 
-    def convertLongToDate(l: Long): Date = new Date(l)
 
-    //http://tutorials.jenkov.com/java-internationalization/simpledateformat.html
-    // Pattern Syntax
-    val DATE_FORMAT = "dd.MM.yyyy HH:mm:ss"
-
-    /**
-      * When we convert unix_timestamp to String representation of date and time is using same TimeZone.
-      * Later we can adjust it with :
-      *
-      * val format = new SimpleDateFormat()
-      * format.setTimeZone(new SimpleTimeZone(SimpleTimeZone.UTC_TIME, "UTC"))
-      * val dateAsString = format.format(date)
-      *
-      */
-    def getDateAsString(d: Date): String = {
-      val dateFormat = new SimpleDateFormat(DATE_FORMAT)
-      dateFormat.format(d)
-    }
 
     onCommand('info) { implicit msg =>
       withArgs { args => //todo: move onCommand log into separate common method
