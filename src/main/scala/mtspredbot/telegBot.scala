@@ -224,7 +224,6 @@ class telegBot(log :org.slf4j.Logger,
         if (args.isEmpty)
           "No arguments provided."
         else {
-          //todo: check here that input tickerCode correct and exists in mts_meta.tickers.
           tickersDict.find(_.tickerCode.toUpperCase == args(0).toUpperCase).map(_.tickerId) match {
             case Some(tickerId :Int) =>
             {
@@ -246,28 +245,146 @@ class telegBot(log :org.slf4j.Logger,
     onCommandLog(msg)
     val ticksCounts: Seq[TicksCnt] = sessSrc.getTicksDistrib
     //Head of output
-    reply("SYMBOL [TickerID] TicksCount Percent").void
+    //reply("SYMBOL [TickerID] TicksCount Percent").void
     reply(
       ticksCounts.sortBy(t => t.tickCount)(Ordering[Long].reverse).mkString(EOL)
     ).void
   }
 
-  implicit val localDateOrdering: Ordering[LocalDate] = Ordering.by(_.toEpochDay)
-
-  onCommand('barsstat) { implicit msg =>
+  onCommand('ticksallnow) { implicit msg =>
     onCommandLog(msg)
+    val maxD :LocalDate = sessSrc.getMaxD
+    log.info("maxD = "+maxD)
+    val ticksCounts: Seq[TicksCnt] = sessSrc.getTicksDistrib(maxD)
+    //Head of output
+    //reply("SYMBOL [TickerID] TicksCount Percent").void
+    reply(
+      ticksCounts.sortBy(t => t.tickCount)(Ordering[Long].reverse).mkString(EOL)
+    ).void
+  }
+
+
+
+  /**
+    * return last bars by CODE (for all ddates) per each bws
+  */
+  onCommand('bars) { implicit msg =>
+    withArgs { args =>
+      onCommandLog(msg)
+      reply(
+        if (args.isEmpty)
+          "No arguments provided."
+        else {
+          tickersDict.find(_.tickerCode.toUpperCase == args(0).toUpperCase).map(_.tickerId) match {
+            case Some(tickerId :Int) =>
+            {
+              log.info("tickerId = "+tickerId)
+              val tickerCode :String = args(0)
+              log.info("tickerCode = "+tickerCode)
+
+              val inpBws :Int = if (args.size >= 2)
+                args(1).toInt
+               else 0
+
+              log.info("inpBws="+inpBws)
+
+              val sqBs : Seq[BarDateStat] = if (inpBws != 0) {
+                sessSrc.getBarsDdateCodeStats(tickerId).filter(elm => elm.barWidthSec==inpBws)
+              } else {
+                sessSrc.getBarsDdateCodeStats(tickerId)
+              }
+
+              val sqBarsMaxDates : Seq[BarDateStat] = sqBs.map(t => t.barWidthSec).distinct.map(tbws =>sqBs.filter(b => b.barWidthSec == tbws).maxBy(bf => bf.dDate.toEpochDay))
+              val res :Seq[(Int,LocalDate,Long)] = sqBarsMaxDates.map(elm => (elm.barWidthSec,elm.dDate,sessSrc.getMaxTsByDate(tickerId,elm.dDate,elm.barWidthSec)))
+              val sqBars :Seq[Bar] = res.map(elm => sessSrc.getBars(tickerId,elm._2,elm._1,elm._3)).flatten
+
+              log.info("sqBars.size = "+sqBars.size)
+              if (sqBars.nonEmpty)
+               sqBars.sortBy(t => t.barWidthSec).mkString(EOL)
+              else
+                " There is no last bar."
+            }
+            case None => "There is no element with tickerCode ("+ args(0) +") in database. Try command /tickers"
+          }
+        }
+      ).void
+    }
+  }
+
+
+
+
+  /**
+    * return last bar by CODE and Exact BWS
+  */
+  /*
+  onCommand('barw) { implicit msg =>
+    withArgs { args =>
+      onCommandLog(msg)
+      replyMd(
+        if (args.isEmpty)
+          "No arguments provided."
+        else {
+          " "
+        }
+      ).void
+    }
+  }
+*/
+
+
+
+
+  //implicit val localDateOrdering: Ordering[LocalDate] = Ordering.by(_.toEpochDay)
+  /**
+    * The full documentation for & and | have a note explaining this behaviour:
+    * This method evaluates both a and b, even if the result is already determined after evaluating a.
+    */
+  onCommand('barsstat) { implicit msg =>
+      onCommandLog(msg)
     val barsStats: Seq[BarDateStat] = sessSrc.getBarsDdateStats
-    //val seqTickersId :Seq[Int] = barsStats.map(e => e.tickerId).distinct
+
     val dist : Seq[BarDateStat] =
-      (for(elm <- barsStats.map(e => e.tickerId).distinct) yield {
-        barsStats.filter(p => p.tickerId == elm).maxBy(elm => elm.dDate)
+      (for(elm <- barsStats.map(_.tickerId).distinct) yield {
+        barsStats
+          .filter(_.tickerId == elm)
+          .maxBy(_.dDate.toEpochDay)
       }).sortBy(t => t.dDate.toEpochDay)(Ordering[Long].reverse)
 
     //Head of output
     reply("SYMBOL [TickerID]  MAXDATE").void
-    reply(dist.mkString(EOL)
-    ).void
+    reply(dist.mkString(EOL)).void
   }
+
+
+  onCommand('barsstcode) { implicit msg =>
+    withArgs { args =>
+      onCommandLog(msg)
+      replyMd(
+      if (args.isEmpty) "No arguments provided."
+      else {
+        tickersDict.find(_.tickerCode.toUpperCase == args(0).toUpperCase).map(_.tickerId)
+        match {
+          case Some(tickerId :Int) =>
+          {
+            val tickerCode :String = args(0)
+            val barsStats: Seq[BarDateStat] = sessSrc.getBarsDdateCodeStats(tickerId)
+
+            val dist: Seq[BarDateStat] =
+              (for (elm <- barsStats.map(_.barWidthSec).distinct) yield {
+                barsStats.filter(_.barWidthSec == elm).maxBy(_.dDate.toEpochDay)
+              }).sortBy(_.barWidthSec)
+            dist.mkString(EOL)
+          }
+          case None =>
+            "There is no element with tickerCode ("+ args(0) +") in database. Try command /tickers"
+        }
+      }
+      ).void
+    }
+  }
+
+
 
 
 

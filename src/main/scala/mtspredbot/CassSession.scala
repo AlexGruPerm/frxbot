@@ -68,8 +68,23 @@ trait CassSession extends CassQueries {
     )
   }
 
+  val rowToBar = (row :Row, tickersDict :Seq[Ticker]) => {
+    val thisTickerID :Int = row.getInt("ticker_id")
+    log.info("INSIDE rowToBar thisTickerID="+thisTickerID)
+    Bar(
+      thisTickerID,
+      tickersDict.find(_.tickerId == thisTickerID).map(_.tickerCode).getOrElse("n/n"),
+      row.getLocalDate("ddate"),
+      row.getInt("bar_width_sec"),
+      row.getLong("ts_begin"),
+      row.getLong("ts_end"),
+      row.getString("btype"),
+      row.getDouble("o"),
+      row.getDouble("c"),
+      row.getInt("ticks_cnt")
+    )
+  }
 }
-
 
 
 
@@ -85,22 +100,26 @@ class CassSessionSrc(configArg :Config) extends CassSession {
 
   val sess: CqlSession = createSession(node, dc)
 
-  val prepTickersDict: BoundStatement = prepareSql(sess,sqlTickersDict)
+  val prepMaxD: BoundStatement = prepareSql(sess, sqlMaxD)
+
+  val prepTickersDict: BoundStatement = prepareSql(sess, sqlTickersDict)
   val prepMaxDdateSrc: BoundStatement = prepareSql(sess, sqlMaxDdate)
   val prepMaxTsSrc: BoundStatement = prepareSql(sess, sqlMaxTs)
+  val prepTicksTotal: BoundStatement = prepareSql(sess, sqlTicksTotal)
+  val prepTicksTotalDay: BoundStatement = prepareSql(sess, sqlTicksTotalDay)
+  val prepTicksByTicker: BoundStatement = prepareSql(sess, sqlTicksByTicker)
+  val prepTicksDistrib: BoundStatement = prepareSql(sess, sqlTicksDistrib)
+  val prepTicksDistribMaxD: BoundStatement = prepareSql(sess, sqlTicksDistribMaxD)
+  val prepBarsAgrStats: BoundStatement = prepareSql(sess, sqlBarsAgrStats)
+  val prepBarsCodeStats: BoundStatement = prepareSql(sess, sqlBarsCodeStats)
+  val prepMaxTsEndByDate: BoundStatement = prepareSql(sess, sqlMaxTsEndByDate)
+  val prepBarByDateTs: BoundStatement = prepareSql(sess, sqlBarByDateTs).setIdempotent(true)
 
-  val prepTicksTotal : BoundStatement = prepareSql(sess, sqlTicksTotal)
-  val prepTicksByTicker : BoundStatement = prepareSql(sess, sqlTicksByTicker)
-  val prepTicksDistrib : BoundStatement = prepareSql(sess, sqlTicksDistrib)
+  private val tickersDict: Seq[Ticker] = sess.execute(prepTickersDict).all().iterator.asScala.toSeq.map(rowToTicker).toList
 
-  val prepBarsAgrStats : BoundStatement = prepareSql(sess, sqlBarsAgrStats)
+  def getTickersDict: Seq[Ticker] = tickersDict
 
-  private val tickersDict :Seq[Ticker] =  sess.execute(prepTickersDict).all().iterator.asScala.toSeq.map(rowToTicker).toList
-
-
-  def getTickersDict :Seq[Ticker] = tickersDict/*{
-    sess.execute(prepTickersDict).all().iterator.asScala.toSeq.map(rowToTicker).toList
-  }*/
+  def getMaxD: LocalDate = sess.execute(prepMaxD).one().getLocalDate("ddate")
 
   def getMaxDdate(tickerID: Int): LocalDate =
     sess.execute(prepMaxDdateSrc
@@ -113,19 +132,56 @@ class CassSessionSrc(configArg :Config) extends CassSession {
       .setLocalDate("maxDdate", thisDdate))
       .one().getLong("ts")
 
-  def getTicksTotal :Long = sess.execute(prepTicksTotal).one().getLong("cnt")
+  def getTicksTotal: Long = sess.execute(prepTicksTotal).one().getLong("cnt")
 
-  def getTicksByTicker(tickerID: Int) :Long =
+  def getTicksTotalD(maxD: LocalDate): Long = sess.execute(prepTicksTotalDay.setLocalDate("thisDate", maxD)).one().getLong("cnt")
+
+  def getTicksByTicker(tickerID: Int): Long =
     sess.execute(prepTicksByTicker
       .setInt("tickerID", tickerID))
       .one().getLong("cnt")
 
-  def getTicksDistrib :Seq[TicksCnt] = sess.execute(prepTicksDistrib).all().iterator.asScala.toSeq
-    .map(r => rowToTicksCnt(r,getTickersDict,getTicksTotal)).toList
+  def getTicksDistrib: Seq[TicksCnt] = {
+    val ticksTotal: Long = getTicksTotal
+    sess.execute(prepTicksDistrib)
+      .all().iterator.asScala.toSeq
+      .map(rowToTicksCnt(_, getTickersDict, ticksTotal)).toList
+  }
 
-  def getBarsDdateStats : Seq[BarDateStat] = sess.execute(prepBarsAgrStats).all().iterator.asScala.toSeq
-    .map(r => rowToBarDateStat(r,getTickersDict)).toList
+  def getTicksDistrib(maxD: LocalDate): Seq[TicksCnt] = {
+    val ticksTotal: Long = getTicksTotalD(maxD)
+    sess.execute(prepTicksDistribMaxD
+      .setLocalDate("thisDate", maxD))
+      .all().iterator.asScala.toSeq
+      .map(rowToTicksCnt(_, getTickersDict, ticksTotal)).toList
+  }
 
+  def getBarsDdateStats: Seq[BarDateStat] = sess.execute(prepBarsAgrStats).all().iterator.asScala.toSeq
+    .map(rowToBarDateStat(_, getTickersDict)).toList
+
+  def getBarsDdateCodeStats(tickerID: Int): Seq[BarDateStat] =
+    sess.execute(prepBarsCodeStats
+      .setInt("tickerID", tickerID))
+      .all().iterator.asScala.toSeq
+      .map(rowToBarDateStat(_, getTickersDict)).toList
+
+  def getMaxTsByDate(tickerID: Int, maxD: LocalDate, bws :Int): Long =
+    sess.execute(prepMaxTsEndByDate
+      .setInt("tickerID", tickerID)
+      .setLocalDate("thisDate", maxD)
+      .setInt("bws",bws)
+    ).one().getLong("ts")
+
+
+  def getBars(tickerID: Int, thisDate: LocalDate, bws :Int, ts: Long): Seq[Bar] = {
+    log.info("call getBars")
+    sess.execute(prepBarByDateTs
+      .setInt("tickerID", tickerID)
+      .setLocalDate("thisDate", thisDate)
+      .setInt("bws",bws)
+      .setLong("ts", ts)
+    ).all().iterator.asScala.toSeq.map(rowToBar(_, getTickersDict)).toList
+  }
 
 }
 
