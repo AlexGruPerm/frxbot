@@ -20,11 +20,14 @@ trait CassQueries {
 
   val sqlTicksDistribMaxD = "select ticker_id, sum(ticks_count) as cnt from mts_src.ticks_count_days where ddate=:thisDate group by ticker_id allow filtering"
 
-  val sqlBarsAgrStats = "select distinct ticker_id,bar_width_sec,ddate from mts_bars.bars allow filtering"
+  val sqlBarsAgrStats = "select ticker_id,bar_width_sec,ddate from mts_bars.bars_bws_dates"
+    //"select distinct ticker_id,bar_width_sec,ddate from mts_bars.bars allow filtering"
 
-  val sqlBarsCodeStats ="select distinct ticker_id,bar_width_sec,ddate from mts_bars.bars where ticker_id=:tickerID allow filtering"
+  val sqlBarsCodeStats = "select ticker_id,bar_width_sec,ddate from mts_bars.bars_bws_dates where ticker_id = :tickerID"
+    //"select distinct ticker_id,bar_width_sec,ddate from mts_bars.bars where ticker_id=:tickerID allow filtering"
 
-  val sqlMaxTsEndByDate = "select max(ts_end) as ts from mts_bars.bars where ticker_id=:tickerID and bar_width_sec=:bws and ddate=:thisDate allow filtering"
+  val sqlMaxTsEndByDate = "select ts_end as ts from mts_bars.bars where ticker_id=:tickerID and bar_width_sec=:bws and ddate=:thisDate limit 1"
+    //"select max(ts_end) as ts from mts_bars.bars where ticker_id=:tickerID and bar_width_sec=:bws and ddate=:thisDate allow filtering"
 
   val sqlBarByDateTs = "select ticker_id,ddate,bar_width_sec,ts_begin,ts_end,btype,o,c,ticks_cnt from mts_bars.bars where ticker_id=:tickerID and bar_width_sec=:bws and ddate=:thisDate and ts_end=:ts allow filtering"
 

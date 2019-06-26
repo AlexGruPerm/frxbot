@@ -69,6 +69,18 @@ class telegBot(log :org.slf4j.Logger,
       implicit msg => reply(BotCommandsHelper.getHelpText).void
     }
 
+  onCommand("test" ) {
+    implicit msg => replyMd(
+      s""" ----------------------------------------------------
+         ||
+         ||
+         ||
+         ||
+         | ----------------------------------------------------
+                   """.stripMargin
+    ).void
+  }
+
     import scala.compat.Platform.EOL
 
     onCommand("tickers" ) {

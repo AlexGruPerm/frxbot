@@ -6,8 +6,9 @@ libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "org.scala-lang" % "scala-library" % "2.12.4",
   "com.typesafe" % "config" % "1.3.4",
-   "com.bot4s" %% "telegram-core" % "4.2.0-RC1",
-  "com.datastax.oss" % "java-driver-core" % "4.0.1"
+  "com.bot4s" %% "telegram-core" % "4.2.0-RC1",
+  "com.datastax.oss" % "java-driver-core" % "4.0.1",
+  "com.github.jnr" % "jnr-ffi" % "2.1.10"
 )
 
 assemblyMergeStrategy in assembly := {
