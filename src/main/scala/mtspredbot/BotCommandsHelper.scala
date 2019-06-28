@@ -18,6 +18,10 @@ object BotCommandsHelper {
       |/bars CODE - return last bars for each BWS
       |/bars CODE BWS - return last bar by BSW
       |/~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |/cpu - CPU Load average
+      |/sys - common system info about cpu
+      |/mem - memory usage
+      |/gc - call GC
       |/cmd1
     """.stripMargin
 

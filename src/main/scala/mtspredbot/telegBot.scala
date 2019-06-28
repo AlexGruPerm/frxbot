@@ -11,6 +11,7 @@ import com.bot4s.telegram.methods.SendMessage
 import com.bot4s.telegram.models.Message
 import com.softwaremill.sttp.okhttp._
 import com.typesafe.config.Config
+import oshi.SystemInfo
 import slogging.{LogLevel, LoggerConfig, PrintLoggerFactory}
 
 import scala.concurrent.Future
@@ -40,12 +41,12 @@ class telegBot(log :org.slf4j.Logger,
 
   implicit val backend = SttpBackends.default
 
+
+
   //http://spys.one/proxys/US/
   val proxy = new Proxy(Proxy.Type.SOCKS, InetSocketAddress.createUnresolved(proxyHost, proxyPort))
 
   override val client :ScalajHttpClientMy = new ScalajHttpClientMy(botToken, proxy)
-
-
 
     def sendMessageTest(msgText :String) :Future[Unit] = {
       request(SendMessage(chatID, msgText)).void
@@ -79,6 +80,29 @@ class telegBot(log :org.slf4j.Logger,
          | ----------------------------------------------------
                    """.stripMargin
     ).void
+  }
+
+  onCommand("sys" ) {
+    // https://github.com/oshi/oshi/blob/master/oshi-core/src/test/java/oshi/SystemInfoTest.java
+        val si = new SystemInfo()
+        val hal = si.getHardware()
+        //val os = si.getOperatingSystem()
+        val cpu = hal.getProcessor
+    implicit msg => replyMd(
+      s""" ----------------------------------------------------
+         | Sys CPU Load: ${cpu.getSystemCpuLoad}
+         | isCpu64bit  : ${cpu.isCpu64bit}
+         | Model       : ${cpu.getName+" "+cpu.getModel}
+         | Phys Cores  : ${cpu.getPhysicalProcessorCount}
+         | Log Cores   : ${cpu.getLogicalProcessorCount}
+         |---------------------------------------------------- """.stripMargin
+    ).void
+  }
+
+  onCommand("cpu" ) {
+    // https://github.com/oshi/oshi/blob/master/oshi-core/src/test/java/oshi/SystemInfoTest.java
+    val cpu = new SystemInfo().getHardware().getProcessor
+    implicit msg => replyMd("Sys CPU Load: " +cpu.getSystemCpuLoad).void
   }
 
     import scala.compat.Platform.EOL
@@ -168,6 +192,25 @@ class telegBot(log :org.slf4j.Logger,
       log.info(" ---------------------------------------- ")
     }
 
+  onCommand('mem) { implicit msg =>
+      onCommandLog(msg)
+      val mb = 1024*1024
+      val runtime = Runtime.getRuntime
+      replyMd(
+        s"""  Used Memory:   ${(runtime.totalMemory - runtime.freeMemory) / mb} Mb
+           | Free Memory:   ${runtime.freeMemory / mb} Mb
+           | Total Memory:  ${runtime.totalMemory / mb} Mb
+           | Max Memory:    ${runtime.maxMemory / mb} Mb
+           |""".stripMargin
+      ).void
+    }
+
+  onCommand('gc) { implicit msg =>
+    onCommandLog(msg)
+    System.gc()
+    System.runFinalization()
+    replyMd(s"Call GC".stripMargin).void
+  }
 
 
     onCommand('info) { implicit msg =>
@@ -265,7 +308,7 @@ class telegBot(log :org.slf4j.Logger,
   onCommand('bars) { implicit msg =>
     withArgs { args =>
       onCommandLog(msg)
-      reply(
+      replyMd(
         if (args.isEmpty)
           "No arguments provided."
         else {

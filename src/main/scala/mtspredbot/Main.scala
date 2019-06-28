@@ -29,6 +29,7 @@ object Main extends App {
       throw e
   }
 
+  /*
   val sessSrc :CassSessionSrc =
     try {
       CassSessionSrc.apply(config)
@@ -51,25 +52,32 @@ object Main extends App {
         log.error("[4] ERROR when get CassSessionXXX ["+e.getMessage+"] class=["+e.getClass.getName+"]")
         throw e
     }
+  */
 
-
-  val bot = new telegBot(log, config, sessSrc)
+  //(Long) Polling
+  //val bot = new telegBot(log, config, sessSrc)
+  //Webhook
+  val bot = new telegBotWH(log, config)
   val eol = bot.run
 
+  /*
   def SeesionConnectedCheck(isClosed :Boolean) :String =
     !isClosed==true match {case true => "connected" case false => "disconnected"}
+  */
 
+  /*
   bot.sendMessageTest(
     """
        Bot "mtsPredBot" started and ready to communicate.
        You can use command /help to see possible commands.
        Cassandra DB  - """ + SeesionConnectedCheck(sessSrc.sess.isClosed)  + """ """+sessSrc.getIpDc+"""
     """.stripMargin)
+  */
 
   println("Press [ENTER] to shutdown the bot, it may take a few seconds...")
   scala.io.StdIn.readLine()
   log.info("~~~~~~~~~~~~~~~~~~~~~~~~ SHUTDOWN TELEGRAM BOT ~~~~~~~~~~~~~~~~~~~~~~~~")
-  sessSrc.sess.close()
+  //sessSrc.sess.close()
   bot.shutdown()
   Await.result(eol, Duration.Inf)
 }
