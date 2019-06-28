@@ -41,7 +41,7 @@ class telegBotWH(log :org.slf4j.Logger,
   override def receiveMessage(msg: Message): Future[Unit] = {
     msg.text.fold(Future.successful(())) {
       text =>
-        log.info(s"receiveMessage  text=$text")
+        log.info(s"receiveMessage text OK =$text")
         Future.successful()
     }
   }
