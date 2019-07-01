@@ -35,9 +35,6 @@ class telegBotWH(log :org.slf4j.Logger,
   val client = new AkkaHttpClient(config.getString(confPrefix+"token"))
 
   /*
-  val port :Int = config.getInt(confPrefix+"webhook_port")
-  val client = new AkkaHttpClient("886094130:AAENizOGvqrl7vrLVeOZwKfJdIJyQEU_keo")
-  override val webhookUrl = config.getString(confPrefix+"webhookUrl")
   val cfile :java.io.File= new File("C:\\tcert\\mtspredbot.pem")
   val inpCertFilePath :java.nio.file.Path = cfile.toPath
   override val certificate :Option[InputFile] = Option(InputFile(inpCertFilePath))
