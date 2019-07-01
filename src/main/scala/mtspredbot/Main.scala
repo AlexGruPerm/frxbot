@@ -29,7 +29,7 @@ object Main extends App {
       throw e
   }
 
-  /*
+
   val sessSrc :CassSessionSrc =
     try {
       CassSessionSrc.apply(config)
@@ -52,18 +52,19 @@ object Main extends App {
         log.error("[4] ERROR when get CassSessionXXX ["+e.getMessage+"] class=["+e.getClass.getName+"]")
         throw e
     }
-  */
+
 
   //(Long) Polling
   //val bot = new telegBot(log, config, sessSrc)
   //Webhook
-  val bot = new telegBotWH(log, config)
+  val bot = new telegBotWH(log, config, sessSrc)
   val eol = bot.run
 
-  /*
+
+
   def SeesionConnectedCheck(isClosed :Boolean) :String =
     !isClosed==true match {case true => "connected" case false => "disconnected"}
-  */
+
 
   /*
   bot.sendMessageTest(
@@ -77,7 +78,7 @@ object Main extends App {
   println("Press [ENTER] to shutdown the bot, it may take a few seconds...")
   scala.io.StdIn.readLine()
   log.info("~~~~~~~~~~~~~~~~~~~~~~~~ SHUTDOWN TELEGRAM BOT ~~~~~~~~~~~~~~~~~~~~~~~~")
-  //sessSrc.sess.close()
+  sessSrc.sess.close()
   bot.shutdown()
   Await.result(eol, Duration.Inf)
 }

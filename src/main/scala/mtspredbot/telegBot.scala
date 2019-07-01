@@ -15,6 +15,7 @@ import oshi.SystemInfo
 import slogging.{LogLevel, LoggerConfig, PrintLoggerFactory}
 
 import scala.concurrent.Future
+
 object SttpBackends{
   val default = OkHttpFutureBackend()
 }
