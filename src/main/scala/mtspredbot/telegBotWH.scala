@@ -2,7 +2,7 @@ package mtspredbot
 
 import java.io.{File, FileInputStream, InputStream}
 import java.security.{KeyStore, SecureRandom}
-import java.time.LocalDate
+
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import com.bot4s.telegram.api.declarative.Commands
 import com.bot4s.telegram.api.{AkkaTelegramBot, Webhook}
@@ -12,12 +12,12 @@ import com.typesafe.config.Config
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import oshi.SystemInfo
 import slogging.{LogLevel, LoggerConfig, PrintLoggerFactory}
-import scala.compat.Platform.EOL
+
 import scala.concurrent.Future
 
 class telegBotWH(log :org.slf4j.Logger,
-                 config :Config,
-                 sessSrc :CassSessionSrc)
+                 config :Config/*,
+                 sessSrc :CassSessionSrc*/)
     extends AkkaTelegramBot
     with Webhook
     with CommonFuncs
@@ -26,7 +26,7 @@ class telegBotWH(log :org.slf4j.Logger,
   LoggerConfig.factory = PrintLoggerFactory()
   LoggerConfig.level = LogLevel.TRACE
 
-  val tickersDict :Seq[Ticker] = sessSrc.getTickersDict
+ // val tickersDict :Seq[Ticker] = sessSrc.getTickersDict
   val confPrefix :String = "teleg."
 
   val port :Int = config.getInt(confPrefix+"webhook_port")
@@ -82,6 +82,13 @@ class telegBotWH(log :org.slf4j.Logger,
 
   override val client = new AkkaHttpClient(config.getString(confPrefix+"token"))
 
+  val cassSessActor = system.actorOf(CassSessActor.props(config), "CassSessActor")
+
+  cassSessActor ! "test"
+  cassSessActor ! "test"
+  cassSessActor ! "test"
+
+
   def onCommandLog(msg :Message) ={
     log.info(" Command ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ")
     /** USER */
@@ -130,6 +137,7 @@ class telegBotWH(log :org.slf4j.Logger,
     log.info(" ---------------------------------------- ")
   }
 
+  /*
   onCommand('info) { implicit msg =>
     withArgs { args => //todo: move onCommand log into separate common method
       onCommandLog(msg)
@@ -262,7 +270,7 @@ class telegBotWH(log :org.slf4j.Logger,
       Future.successful()
     }
   }
-
+*/
 
   onCommand('author) { implicit msg =>
     onCommandLog(msg)
@@ -285,6 +293,7 @@ class telegBotWH(log :org.slf4j.Logger,
   /**
     * return last bars by CODE (for all ddates) per each bws
     */
+  /*
   onCommand('bars) { implicit msg =>
     withArgs { args =>
       onCommandLog(msg)
@@ -328,6 +337,7 @@ class telegBotWH(log :org.slf4j.Logger,
       Future.successful()
     }
   }
+  */
 
   onCommand("sys" ) {
     // https://github.com/oshi/oshi/blob/master/oshi-core/src/test/java/oshi/SystemInfoTest.java
@@ -354,6 +364,7 @@ class telegBotWH(log :org.slf4j.Logger,
       Future.successful()
   }
 
+  /*
   onCommand("tickers" ) {
     implicit msg => reply(tickersDict.sortBy(t => t.tickerId).mkString(EOL))
       Future.successful()
@@ -380,7 +391,7 @@ class telegBotWH(log :org.slf4j.Logger,
     )
     Future.successful()
   }
-
+*/
 
 }
 

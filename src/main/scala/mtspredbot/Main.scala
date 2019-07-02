@@ -29,7 +29,6 @@ object Main extends App {
       throw e
   }
 
-
   val sessSrc :CassSessionSrc =
     try {
       CassSessionSrc.apply(config)
@@ -54,9 +53,9 @@ object Main extends App {
     }
 
   //Webhook
-  val bot = new telegBotWH(log, config, sessSrc)
-  val eol = bot.run
 
+  val bot = new telegBotWH(log, config/*, sessSrc*/)
+  val eol = bot.run
 
   def SeesionConnectedCheck(isClosed :Boolean) :String =
     !isClosed==true match {case true => "connected" case false => "disconnected"}
