@@ -53,9 +53,9 @@ object Main extends App {
     }
 
   //Webhook
-
-  val bot = new telegBotWH(log, config/*, sessSrc*/)
+  val bot = new telegBotWH(log, config, sessSrc)
   val eol = bot.run
+
 
   def SeesionConnectedCheck(isClosed :Boolean) :String =
     !isClosed==true match {case true => "connected" case false => "disconnected"}
@@ -63,7 +63,7 @@ object Main extends App {
   println("Press [ENTER] to shutdown the bot, it may take a few seconds...")
   scala.io.StdIn.readLine()
   log.info("~~~~~~~~~~~~~~~~~~~~~~~~ SHUTDOWN TELEGRAM BOT ~~~~~~~~~~~~~~~~~~~~~~~~")
-  //sessSrc.sess.close()
+  sessSrc.sess.close()
   bot.shutdown()
   Await.result(eol, Duration.Inf)
 }

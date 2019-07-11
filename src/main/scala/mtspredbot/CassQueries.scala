@@ -2,7 +2,7 @@ package mtspredbot
 
 trait CassQueries {
 
-  val sqlTickersDict  = "select ticker_id,ticker_code from mts_meta.tickers allow filtering"
+  val sqlTickersDict  = "select ticker_id,ticker_code,ticker_first,ticker_seconds from mts_meta.tickers allow filtering"
 
   val sqlMaxD = "select max(ddate) as ddate from mts_src.ticks_count_days"
 

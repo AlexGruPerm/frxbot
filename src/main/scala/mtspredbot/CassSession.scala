@@ -8,19 +8,41 @@ import com.datastax.oss.driver.api.core.CqlSession
 import com.datastax.oss.driver.api.core.cql.{BoundStatement, Row}
 import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
+
 import scala.collection.JavaConverters._
 //import scala.collection.JavaConverters._
+
+//Very important notes:
+/**
+  * https://datastax-oss.atlassian.net/browse/JAVA-2264?page=com.atlassian.jira.plugin.system.issuetabpanels%3Aall-tabpanel
+  *
+  *
+  * Thank you for the report. I was able to reproduce this on windows after executing any statement.
+  * It looks like Netty's HashedWheelTimer doesn't behave well on windows when you set the resolution to a low value,
+  * like we do in the java driver (1ms):
+  *
+  * https://github.com/netty/netty/blob/netty-4.1.28.Final/common/src/main/java/io/netty/util/HashedWheelTimer.java#L557-L564
+  *
+  * // Check if we run on windows, as if thats the case we will need
+  * // to round the sleepTime as workaround for a bug that only affect
+  * // the JVM if it runs on windows.
+  * //
+  * // See https://github.com/netty/netty/issues/356
+  *
+  *
+*/
+
 
 trait CassSession extends CassQueries {
   def config: Config
 
   val log = LoggerFactory.getLogger(getClass.getName)
 
-  private val confConnectPath :String = "cassandra."
+  private val confConnectPath: String = "cassandra."
 
-  def getNodeAddressDc(path :String) :(String,String) =
-    (config.getString(confConnectPath+path+".ip"),
-      config.getString(confConnectPath+path+".dc"))
+  def getNodeAddressDc(path: String): (String, String) =
+    (config.getString(confConnectPath + path + ".ip"),
+      config.getString(confConnectPath + path + ".dc"))
 
   def createSession(node :String,dc :String,port :Int = 9042) :CqlSession =
     CqlSession.builder()
@@ -44,7 +66,9 @@ trait CassSession extends CassQueries {
    val rowToTicker :(Row => Ticker) = (row: Row) =>
     Ticker(
       row.getInt("ticker_id"),
-      row.getString("ticker_code")
+      row.getString("ticker_code"),
+      row.getString("ticker_first"),
+      row.getString("ticker_seconds")
     )
 
    val rowToTicksCnt =(row :Row, tickersDict :Seq[Ticker], ticksTotal :Long) => {
@@ -84,9 +108,8 @@ trait CassSession extends CassQueries {
       row.getInt("ticks_cnt")
     )
   }
+
 }
-
-
 
 
 
@@ -100,9 +123,9 @@ class CassSessionSrc(configArg :Config) extends CassSession {
 
   val sess: CqlSession = createSession(node, dc)
 
-  val prepMaxD: BoundStatement = prepareSql(sess, sqlMaxD)
-
   val prepTickersDict: BoundStatement = prepareSql(sess, sqlTickersDict)
+
+  val prepMaxD: BoundStatement = prepareSql(sess, sqlMaxD)
   val prepMaxDdateSrc: BoundStatement = prepareSql(sess, sqlMaxDdate)
   val prepMaxTsSrc: BoundStatement = prepareSql(sess, sqlMaxTs)
   val prepTicksTotal: BoundStatement = prepareSql(sess, sqlTicksTotal)
@@ -182,6 +205,7 @@ class CassSessionSrc(configArg :Config) extends CassSession {
       .setLong("ts", ts)
     ).all().iterator.asScala.toSeq.map(rowToBar(_, getTickersDict)).toList
   }
+
 
 }
 
