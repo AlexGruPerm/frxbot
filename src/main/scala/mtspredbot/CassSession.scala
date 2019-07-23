@@ -94,7 +94,6 @@ trait CassSession extends CassQueries {
 
   val rowToBar = (row :Row, tickersDict :Seq[Ticker]) => {
     val thisTickerID :Int = row.getInt("ticker_id")
-    log.info("INSIDE rowToBar thisTickerID="+thisTickerID)
     Bar(
       thisTickerID,
       tickersDict.find(_.tickerId == thisTickerID).map(_.tickerCode).getOrElse("n/n"),
@@ -197,7 +196,6 @@ class CassSessionSrc(configArg :Config) extends CassSession {
 
 
   def getBars(tickerID: Int, thisDate: LocalDate, bws :Int, ts: Long): Seq[Bar] = {
-    log.info("call getBars")
     sess.execute(prepBarByDateTs
       .setInt("tickerID", tickerID)
       .setLocalDate("thisDate", thisDate)
