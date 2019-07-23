@@ -20,7 +20,7 @@ trait CassQueries {
 
   val sqlTicksDistribMaxD = "select ticker_id, sum(ticks_count) as cnt from mts_src.ticks_count_days where ddate=:thisDate group by ticker_id allow filtering"
 
-  val sqlBarsAgrStats = "select ticker_id,bar_width_sec,ddate from mts_bars.bars_bws_dates"
+  val sqlBarsAgrStats = "select  ticker_id,bar_width_sec,ddate from mts_bars.bars_bws_dates"
     //"select distinct ticker_id,bar_width_sec,ddate from mts_bars.bars allow filtering"
 
   val sqlBarsCodeStats = "select ticker_id,bar_width_sec,ddate from mts_bars.bars_bws_dates where ticker_id = :tickerID allow filtering;"
