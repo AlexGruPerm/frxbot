@@ -69,7 +69,7 @@ class telegBotWH(log :org.slf4j.Logger,
     val ks: KeyStore = KeyStore.getInstance("PKCS12")
     val keystore: InputStream = new FileInputStream(config.getString(confPrefix+"p12certpath"))
 
-    require(keystore != null, "Keystore required!")
+    require(keystore != null, " - Keystore required!")
     ks.load(keystore, password)
 
     val keyManagerFactory: KeyManagerFactory = KeyManagerFactory.getInstance("SunX509")
