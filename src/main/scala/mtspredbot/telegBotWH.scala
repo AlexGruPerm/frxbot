@@ -40,7 +40,7 @@ class telegBotWH(log :org.slf4j.Logger,
   log.info(" webhookUrl="+webhookUrl+" port="+port)
 
   val certPathStr :String = config.getString(confPrefix+"pubcertpath")
-  log.info("certificate path ="+certPathStr)
+  log.info("Certificate Path ="+certPathStr)
 
   override def certificate: Option[InputFile] = Some(
     InputFile(new File(certPathStr).toPath)
